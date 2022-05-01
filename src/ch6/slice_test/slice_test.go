@@ -102,3 +102,47 @@ func TestArrayandSlice(t *testing.T) {
     primes := [6]int{2, 3, 5, 7, 11, 13}
     fmt.Println(primes)  // [2 3 5 7 11 13]
 }
+
+
+// slice of integer, boolean, struct
+func TestSliceType(t *testing.T) {
+	// integer slice
+	q := []int{2, 3, 5, 7, 11, 13}
+	fmt.Println(q)
+
+	// boolean slice
+	r := []bool{ true, false, true, true, false, true}
+	fmt.Println(r)
+
+	// struct slice
+	s := []struct {
+			i int
+			b bool
+	}{
+			{2, true},
+			{3, false},
+			{5, true},
+			{7, true},
+			{11, false},
+			{13, true},
+	}
+	fmt.Println(s)
+}
+
+// slices of slices
+func TestSliceOfSlices(t *testing.T) {
+	arr := make([][]int, 3)
+	fmt.Println(arr) // [[] [] []]
+
+  // 賦值
+  arr[0] = []int{1}
+	arr[1] = []int{2}
+	arr[2] = []int{3}
+	fmt.Println(arr) // [[1] [2] [3]]
+
+	arr2 := [][]int{
+		[]int{1},
+		[]int{2},
+	}
+	fmt.Println(arr2) // [[1] [2]]
+}
