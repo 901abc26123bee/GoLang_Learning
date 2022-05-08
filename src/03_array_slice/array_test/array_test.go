@@ -1,6 +1,10 @@
 package array_test
 
-import "testing"
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
 
 func TestArray(t *testing.T) {
 	var arr [3]int
@@ -33,4 +37,28 @@ func TestArraySections(t *testing.T) {
 	t.Log(arr1[3:])
 	t.Log(arr1[:3])
 	t.Log(arr1[:])
+}
+
+// Arrays 的建立
+// 在 Array 中陣列的元素是固定的：
+// 1. 陣列型別：[n]T
+// 2. 使用 [...]T{} 可以根據元素的數目自動建立陣列：
+func TestArrayCreatiojn(t *testing.T) {
+	// 先定義再賦值
+	var a [2]string
+	a[0] = "Hello"
+	a[1] = "World"
+	fmt.Println(a)  // [Hello World]
+
+	// 定義且同時賦值
+	primes := [6]int{2, 3, 5, 7, 11, 13}
+	fmt.Println(primes)  // [2 3 5 7 11 13]
+
+	// 沒有使用 ...，建立出來的會是 slice
+	arr := []string{"North", "East", "South", "West"}
+	fmt.Println(reflect.TypeOf(arr).Kind(), len(arr))  // slice 4
+
+	// 使用 ...，建立出來的會是 array
+	arrWithDots := [...]string{"North", "East", "South", "West"}
+	fmt.Println(reflect.TypeOf(arrWithDots).Kind(), len(arrWithDots))  // array 4
 }

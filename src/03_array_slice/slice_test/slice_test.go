@@ -2,6 +2,7 @@ package slice_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -66,7 +67,7 @@ func TestCompareArray(t *testing.T) {
 }
 
 func TestArrayandSlice(t *testing.T) {
-		// Slice 的建立 ----------------------------------------------------------------
+		// -------------------------------- Slice 的建立 --------------------------------
 		// slice 型別：[]T
 		// slice := make([]T, len, cap)
 	  // 方式一：建立一個帶有資料的 string slice，適合用在知道 slice 裡面的元素有哪些時
@@ -85,13 +86,12 @@ func TestArrayandSlice(t *testing.T) {
 		fmt.Print(people3)
 		fmt.Print(people4)
 
-
-
-		// Arrays 的建立 ----------------------------------------------------------------
+		// ---------------------------------- Arrays 的建立 ------------------------------
 		// 在 Array 中陣列的元素是固定的：
-
 		// 陣列型別：[n]T
-		// 陣列的元素只能有 10 個，且都是數值
+		// 1. 先定義再賦值
+		// 2. 使用 [...]T{} 可以根據元素的數目自動建立陣列
+
 		// 先定義再賦值
     var a [2]string
     a[0] = "Hello"
@@ -101,8 +101,33 @@ func TestArrayandSlice(t *testing.T) {
   	// 定義且同時賦值
     primes := [6]int{2, 3, 5, 7, 11, 13}
     fmt.Println(primes)  // [2 3 5 7 11 13]
+
+		// 沒有使用 ...，建立出來的會是 slice
+		arr := []string{"North", "East", "South", "West"}
+		fmt.Println(reflect.TypeOf(arr).Kind(), len(arr))  // slice 4
+
+		// 使用 ...，建立出來的會是 array
+		arrWithDots := [...]string{"North", "East", "South", "West"}
+		fmt.Println(reflect.TypeOf(arrWithDots).Kind(), len(arrWithDots))  // array 4
 }
 
+func printSlice(s []int) {
+	fmt.Printf("len=%d cap=%d %v\n", len(s), cap(s), s)
+}
+
+func TestSliceLenAndCapacity(t *testing.T) {
+	s := []int{2, 3, 5, 7, 11, 13}
+	printSlice(s)  // len=6 cap=6 [2 3 5 7 11 13]
+
+	s = s[:0]
+	printSlice(s)  // len=0 cap=6 []
+
+	s = s[:4]
+	printSlice(s)  // len=4 cap=6 [2 3 5 7]
+
+	s = s[2:]
+	printSlice(s)  // len=2 cap=4 [5 7]
+}
 
 // slice of integer, boolean, struct
 func TestSliceType(t *testing.T) {

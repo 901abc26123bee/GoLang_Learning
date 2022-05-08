@@ -11,6 +11,9 @@ import (
 	2. v, ok <- ch ==> ok is a boolean: true ==> normally accept data from channel, false -> channel is closed
 	2. All channel's receivers return from blocked waiting state if 'ok' return false.
 			This is often used in broadcasting ==> send exiting signal to all subscribers
+
+	當 channel 已經被關閉時，ok 會是 false，value 則會是 zero value
+	⚠️ 只有 sender 可以使用 close，receiver 使用的話會發生 panic。
 */
 
 
