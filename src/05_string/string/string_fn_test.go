@@ -17,10 +17,12 @@ func TestStringFn(t *testing.T) {
 }
 
 func TestConvert(t *testing.T) {
+	// strconv.Itoa : int -> string
 	s := strconv.Itoa(10)
-	t.Log("str" + s)
+	t.Log("str" + s) // str10
+	// strconv.Atoi : string -> int
 	if i, err := strconv.Atoi("15"); err == nil {
-		t.Log(10 + i)
+		t.Log(10 + i) // 25
 	}
 }
 
