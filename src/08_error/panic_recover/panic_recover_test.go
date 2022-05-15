@@ -21,6 +21,13 @@ func TestPanicVsExits2(t *testing.T) {
 	}()
 	fmt.Println("start")
 	panic(errors.New("Something Wrong"))
+	/*
+	start
+	Finally
+	--- FAIL: TestPanicVsExits2 (0.00s)
+	panic: Something Wrong [recovered]
+					panic: Something Wrong
+	*/
 }
 
 // recover() --< recover from panic
@@ -32,5 +39,10 @@ func TestPanicAndRecover(t *testing.T) {
 	}()
 	fmt.Println("start")
 	panic(errors.New("Something Wrong"))
+	/*
+	start
+	Recovered from Something Wrong
+	--- PASS: TestPanicAndRecover (0.00s)
+	*/
 }
 
