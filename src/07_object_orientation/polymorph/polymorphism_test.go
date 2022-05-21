@@ -127,3 +127,31 @@ func TestPolygon3(t *testing.T) {
 	// a = v
 }
 
+// 判斷 interface 被 implement 的型別
+// 建立 interface 後可以使用 interface.(type) 來判斷該 interface 被 implement 的型別：
+var (
+	i interface{}
+)
+
+func convert(i interface{}) {
+	switch t := i.(type) {
+	case int:
+			fmt.Printf("%v is integer(%T)\n", t, t)
+	case string:
+			fmt.Printf("%v is string(%T)\n", t, t)
+	case float64:
+			fmt.Printf("%v is float64(%T)\n", t, t)
+	default:
+			fmt.Printf("type not found")
+	}
+}
+
+func TestInterfaceImplementedType(t *testing.T) {
+	convert(100) // 100 is integer(int)
+
+	convert(45.55) // 45.55 is float64(float64)
+
+	convert("foo") // foo is string(string)
+
+	convert(float32(10.0)) // type not found
+}

@@ -35,9 +35,10 @@ func (p *ObjPool) GetObj(timeout time.Duration) (*ReusableObj, error) {
 	}
 }
 
+type object interface {}
 // if you want to accept any type in to buffer channel --> obj interface{}
 // but you need to do type determination when comsumed data from channel
-func (p *ObjPool) GetObjWithAnyType(timeout time.Duration) (obj interface{}, error) {
+func (p *ObjPool) GetObjWithAnyType(timeout time.Duration) (object, error) {
 	select {
 	case ret := <-p.bufChan:
 		return ret, nil
