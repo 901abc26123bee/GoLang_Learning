@@ -133,15 +133,20 @@ func TestErrorType(t *testing.T) {
 
 // *	Example 2:
 // 作法：自己定義 error structure（二）
+
+// STEP 1：定義一個 error type
 type ErrUserNameExist struct {
 	UserName string
 }
+
+// STEP 2：擴充 Error == implement Error interface
 func (e ErrUserNameExist) Error() string {
 	return fmt.Sprintf("username %s is already exist", e.UserName)
 }
 
 func checkUserNameExist3(username string) (bool, error) {
 	if username == "foo" {
+		 // STEP 3：使用定義好的 error struct
 		return true, ErrUserNameExist{
 			UserName: username,
 		}
@@ -156,17 +161,19 @@ func TestCustomizedError2(t *testing.T) {
 }
 
 // 也可以使用 err.(ErrorType) 進一步判斷這個 error type 是不是自己定義的 error structure（errUserNameExist）：
+// STEP 1：判斷這個 err 是不是自己定義的 errUserNameExist
 func isErrUserNameExist(err error) bool {
+	// 因為 err 是 interface，裡面可以定義各種不同的形態
 	_, ok := err.(ErrUserNameExist)
 	return ok
 }
 
 func checkUserNameExist4(username string) (bool, error) {
 	if username == "bar" {
-		return true, errors.New("bar exist")
+		return true, errors.New("bar exist") // return errors.New("bar exist")
 	}
 	if username == "foo" {
-		return true, ErrUserNameExist{
+		return true, ErrUserNameExist{ // return ErrUserNameExist implemented method
 			UserName: username,
 		}
 	}
@@ -175,6 +182,7 @@ func checkUserNameExist4(username string) (bool, error) {
 
 func TestErrWithErrorTypeFunction(t *testing.T) {
 	if _, err := checkUserNameExist4("foo"); err != nil {
+		// STEP 2：進行判斷
 		if isErrUserNameExist(err) {
 			fmt.Println(err) // username foo is already exist
 		}
@@ -214,7 +222,7 @@ type SenserReading struct {
 	Capacity int `json:"capacity"`
 }
 
-func TestErrorType2(t *testing.T) {
+func TestErrorTypeWithJsonToStruct(t *testing.T) {
 	jsonString := `{"name": "battery sensor", "capacity": "wrong time"}`
 	reading := SenserReading{}
 
@@ -225,6 +233,19 @@ func TestErrorType2(t *testing.T) {
 		fmt.Println(isUnmarshalError) // true
 	}
 	fmt.Printf("%+v\n", reading) // {Name:battery sensor Capacity:0}
+}
+
+func TestErrorTypeWithJsonToStruct2(t *testing.T) {
+	jsonString := `{"name": "battery sensor", "capacity": 5}`
+	reading := SenserReading{}
+
+	err := json.Unmarshal([]byte(jsonString), &reading)
+	if err != nil {
+		unmarshalError, isUnmarshalError := err.(*json.UnmarshalTypeError) // 使用 err.(T) 來判斷錯誤的型別
+		fmt.Println(unmarshalError)
+		fmt.Println(isUnmarshalError)
+	}
+	fmt.Printf("%+v\n", reading) // {Name:battery sensor Capacity:5}
 }
 
 // 也可以用來判斷客制的錯誤類型：

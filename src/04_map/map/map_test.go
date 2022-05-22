@@ -43,8 +43,11 @@ func TestTravelMap(t *testing.T) {
 }
 
 // 建立 Map 的方式
+// 在 Go 中，Map 也是 Key-Value pair 的組合，
+// 但是 Map 所有 Key 的資料型別都要一樣；所有 Value 的資料型別也要一樣。
+// 另外，在設值和取值需要使用 [] 而非 .。map 的 zero value 是 nil。
 func TestMapCreation(t *testing.T) {
-  // 第一種方式
+  // *第一種方式
   // 建立一個型別為 map 的變數，其中的 key 都會是 string，value 也都會是 string
   colors := map[string]string{}
 	fmt.Println(colors) // map[]
@@ -56,11 +59,11 @@ func TestMapCreation(t *testing.T) {
 	}
 	fmt.Println(colors2) // map[green:#4bf745 red:#ff0000]
 
-  // 第二種方式
+  // *第二種方式
   var colors3 map[string]string
 	fmt.Println(colors3) // map[]
 
-  // 第三種方式，使用 make 建立 Map。
+  // *第三種方式，使用 make 建立 Map。
   // Key 的型別是 string，Value 是 int
   colors4 := make(map[string]int)
 	colors4["red"] = 10
@@ -71,7 +74,6 @@ func TestMapCreation(t *testing.T) {
 	fmt.Println(colors5) // map[]
 }
 
-// Map 的 value 是 struct
 // Map 的 value 是 struct
 type Vertex struct {
 	Lat, Long float64
