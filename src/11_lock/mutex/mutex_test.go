@@ -75,36 +75,3 @@ func TestMutex(t *testing.T) {
 
 		*	$ go run -race program.go
 */
-
-// ------------------------------ Concurrency Pattern ----------------------------------
-// fib 會回傳 read-only channel
-func fib(length int) <-chan int {
-	c := make(chan int, length)
-
-	// run generation concurrently
-	go func() {
-			for i, j := 0, 1; i < length; i, j = i+j, i {
-					c <- i
-			}
-
-			close(c)
-	}()
-
-	// return channel
-	return c
-}
-
-func TestConcurrency(t *testing.T) {
-	for fn := range fib(10) {
-			fmt.Println("Current fibonacci number is ", fn)
-	}
-	/*
-	Current fibonacci number is  0
-	Current fibonacci number is  1
-	Current fibonacci number is  1
-	Current fibonacci number is  2
-	Current fibonacci number is  3
-	Current fibonacci number is  5
-	Current fibonacci number is  8
-	*/
-}
