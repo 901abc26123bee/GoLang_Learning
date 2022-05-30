@@ -7,6 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+/*
+	benchmark
+	go 可以使用 benchmark 來做一些效能測試，需要調整程式的效能時就會需要用到．
+	要效能測試的 function 名稱是要 Benchmark 開頭
+
+	go test -bench
+下指令執行 benchmark 跑效能測試，在 go test 後加上 -bench=.，最後一個 . 是代表當前 package．
+*/
+
+
 func TestConcatStringByAdd(t *testing.T) {
 	assert := assert.New(t)
 	elems := []string{"1", "2", "3", "4", "5", "6"}
