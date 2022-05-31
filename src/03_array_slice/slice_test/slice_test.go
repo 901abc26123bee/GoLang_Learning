@@ -100,6 +100,11 @@ func TestArrayandSlice(t *testing.T) {
 		// 方式二：透過 make 可以建立「空 slice」，適合用會對 slice 中特定位置元素進行操作時
 		people2 := make([]int, 4)  // len=4 cap=4，[0,0,0,0]
 
+		row := 10
+		col := 10
+		x := make([][]int, row, col)
+		fmt.Println(x) // [[] [] [] [] [] [] [] [] [] []]
+
 		// 方式三：空的 slice，一般會搭配 append 使用
 		var people3 []string
 

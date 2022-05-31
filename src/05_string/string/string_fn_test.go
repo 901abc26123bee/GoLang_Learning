@@ -42,25 +42,50 @@ func TestCreateString(t *testing.T) {
 	fmt.Println(s.String())
 }
 
-
-func TestStringFunction(t *testing.T) {
+// Fields: 根據「空白」，將字串拆成 slices：
+func TestStringFunctionField(t *testing.T) {
 	// 根據「空白」，將字串拆成 slices：
 	fields := strings.Fields("I am learning Go")
   fmt.Println(fields)  // [I am learning Go]
-	fmt.Println(fields[2])
+	fmt.Println(fields[2]) // learning
 }
 
-
-func TestStringFunction2(t *testing.T) {
+// Join
+/*
+	a 是 slice string
+	sep 指的是 separator，陣列連接時要用什麼字串連接
+	func Join(a []string, sep string) string
+*/
+func TestStringFunctionJoin(t *testing.T) {
 	type fruits []string
 	favorites := fruits{"appele", "banana", "Orange", "Grupe"}
-	fmt.Println(favorites)
-	fmt.Println(strings.Join(favorites, "-"))
+	fmt.Println(favorites) // [appele banana Orange Grupe]
+	fmt.Println(strings.Join(favorites, "-")) // appele-banana-Orange-Grupe
 }
 
+type fruits []string
+
+func (f fruits) toString() string {
+	return strings.Join(f, ",")
+}
+
+func TestStringFunctionJoin2(t *testing.T) {
+	favoriteFruits := fruits{"Apple", "Banana", "Orange", "Guava"}
+  fmt.Println(favoriteFruits.toString()) // Apple,Banana,Orange,Guava
+}
+
+/*
+	Split
+	將字串轉成 slice string
+	s 是字串
+	sep 是 separator
+	func Split(s, sep string) []string
+*/
+
+// ------------------------------------------------------------------------------------------------
 // TrimLeft(s, cutset string) 會從 s 的左邊開始，依序判斷每一個字元是否被包含在 cutset 中，cutset 中可能不只包含一個字元，只要有在 cutset 中則會被 Trim 掉；
 // TrimPrefix(s, prefix string) 一樣會從 s 的左邊開始，但是會把 prefix 當成一個完整的字串，而不是當成包含許多獨立字元的 cutset
-func TestStringFunction3(t *testing.T) {
+func TestStringFunctionTrimLeftAndTrimPrefix(t *testing.T) {
 	auth := "123111123/1234"
 
 	fmt.Println(strings.TrimLeft(auth, "123"))   // /1234
@@ -72,7 +97,7 @@ func TestStringFunction3(t *testing.T) {
 	fmt.Println(strings.TrimPrefix(auth, "123")) // 123/1234
 }
 
-// String Interpolation, injection syntax
+// 字串插補（String Interpolation, injection syntax）
 func TestStringFunction4(t *testing.T) {
 	type person struct {
     firstName string

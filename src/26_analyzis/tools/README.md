@@ -1,5 +1,36 @@
 [Profiling A Guide to Profiling and Code Optimization](https://medium.com/happyfresh-fleet-tracker/danny-profiling-1c60a19d30de)
+[pprof](https://pkg.go.dev/net/http/pprof)
+[Go 程式崩了？煎魚教你用 PProf 工具來救火！](https://www.gushiciku.cn/pl/gd3C/zh-tw)
+[你不知道的 Go 之 pprof](https://darjun.github.io/2021/06/09/youdontknowgo/pprof/)
 
+## PProf 是什麼
+在 Go 語言中，PProf 是用於視覺化和分析效能分析資料的工具，PProf 以 profile.proto 讀取分析樣本的集合，並生成報告以視覺化並幫助分析資料（支援文字和圖形報告）。
+
+而剛剛提到的 profile.proto 是一個 Protobuf v3 的描述檔案，它描述了一組 callstack 和 symbolization 資訊， 作用是統計分析的一組取樣的呼叫棧，是很常見的 stacktrace 配置檔案格式。
+
+## 有哪幾種取樣方式
+- runtime/pprof：採集程式（非 Server）的指定區塊的執行資料進行分析。
+- net/http/pprof：基於HTTP Server執行，並且可以採集執行時資料進行分析。
+- go test：通過執行測試用例，並指定所需標識來進行採集。
+
+## 支援什麼使用模式
+- Report generation：報告生成。
+- Interactive terminal use：互動式終端使用。
+- Web interface：Web 介面。
+## 檢測功能主要有
+1. cpu: cpu profile 是在哪邊花費CPU的時間。
+2. heap: 記憶體當下以及過去的使用情況，並檢查記憶體洩漏
+3. threadcreate: Thread的線程
+4. goroutine: Goroutine profile 報告所有目前 goroutine的 stack追蹤。
+5. block: block profile 顯示 goroutine在哪裡阻塞（含timer channels）的等待。預設是關閉的，需要使用 runtime.SetBlockProfileRate 去開啟它。
+6. mutex: Mutex profile 報告鎖的競爭. 如果您認為由於互斥鎖爭用而無法充分利用CPU. 預設是關閉的，需要使用 runtime.SetMutexProfileFraction 去開啟它。
+
+其中像是 Goroutine Profiling 這項功能會在實際排查中會經常用到。
+因為很多問題出現時的表象就是 Goroutine 暴增，而這時候我們要做的事情之一就是檢視應用程式中的 Goroutine 正在做什麼事情，因為什麼阻塞了，然後再進行下一步。
+
+
+
+## 使用
 $ brew install graphviz
 $ go tool pprof -http :6060 cpu.prof
 
