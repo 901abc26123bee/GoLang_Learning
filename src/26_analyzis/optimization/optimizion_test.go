@@ -1,4 +1,4 @@
-package main
+package optimize
 
 import (
 	"bytes"
@@ -29,16 +29,23 @@ func BenchmarkProcessRequest(b *testing.B) {
 			buf.WriteString(elem)
 		}
 	}
+	// for i:=0; i<b.N; i++ {
+	// 	ret := ""
+	// 	for _, elem := range reqs {
+	// 		ret += elem
+	// 	}
+	// }
 	b.StopTimer()
 }
 // go test -bench=.
 // go test -bench=. -cpuprofile=cpu.prof
 // go tool pprof cpu.prof
 
-// (pprof)top -cum
+// (pprof) top -cum
 // (pprof) list processRequest
 // (pprof) exit
 
 // ---------------- optimize ------------------
 // ls
-// easyjson -all structs.gp
+// easyjson -all structs.go
+// ~/go/bin/easyjson  -all structs.go
