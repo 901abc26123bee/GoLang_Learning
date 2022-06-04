@@ -1,4 +1,4 @@
-package stringbyte_test
+package transfer
 
 import (
 	"bytes"

@@ -71,3 +71,38 @@ vim ~/.zshrc
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 ```
+
+
+## import
+
+### 一些特殊的 import
+
+1. 點操作
+
+```go
+  import(
+      . "fmt"
+  )
+```
+
+這個點操作的含義就是這個套件匯入之後在你呼叫這個套件的函式時，你可以省略字首的套件名，也就是前面你呼叫的 `fmt.Println("hello world")` 可以省略的寫成 `Println("hello world")`
+
+2. 別名操作
+
+別名操作顧名思義我們可以把套件命名成另一個我們用起來容易記憶的名字
+```go
+  import(
+      f "fmt"
+  )
+```
+別名操作的話呼叫套件函式時字首變成了我們的字首，即 `f.Println("hello world")`
+
+3. `_`操作
+
+```go
+	import (
+	    "database/sql"
+	    _ "github.com/ziutek/mymysql/godrv"
+	)
+```
+`_`操作其實是引入該套件，而不直接使用套件裡面的函式，而是呼叫了該套件裡面的 init 函式。

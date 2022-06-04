@@ -6,7 +6,7 @@ import (
 )
 
 // [GO编程模式：委托和反转控制](https://coolshell.cn/articles/21214.html)
-
+// * Go 裡面的物件導向，沒有任何的私有、公有關鍵字，透過大小寫來實現（大寫開頭的為公有，小寫開頭的為私有），方法也同樣適用這個原則。
 type Widget struct {
 	X, Y int
 }
@@ -76,6 +76,7 @@ func TestOverridee(t *testing.T) {
 
 	listBox := ListBox{Widget{10, 40}, []string{"AL", "AK", "AZ", "AR"}, 0}
 
+	// 使用接口來多態
 	for _, painter := range []Painter{label, listBox, button1, button2} {
 		painter.Paint()
 	}
@@ -86,6 +87,7 @@ func TestOverridee(t *testing.T) {
 		Button.Paint(Cancel)
 	*/
 
+	// 使用 泛型的 interface{} 來多態, 但是需要有一個類型轉換。
 	for _, widget := range []interface{}{label, listBox, button1, button2} {
 		widget.(Painter).Paint()
 		if clicker, ok := widget.(Clicker); ok {
@@ -106,3 +108,28 @@ func TestOverridee(t *testing.T) {
 	Button.Click(Cancel)
 	*/
 }
+
+// ------------------------------------------------------------------------------------------------
+// * Go 裡面的物件導向，沒有任何的私有、公有關鍵字，透過大小寫來實現（大寫開頭的為公有，小寫開頭的為私有），方法也同樣適用這個原則。
+// Overiding
+type Human struct {
+	name string
+	age int
+	phone string  // Human 型別擁有的欄位
+}
+
+type Employee struct {
+	Human  // 匿名欄位 Human
+	speciality string
+	phone string  // 僱員的 phone 欄位
+}
+
+func TestOveriding(t *testing.T) {
+	Bob := Employee{Human{"Bob", 34, "777-444-XXXX"}, "Designer", "333-222"}
+	fmt.Println("Bob's work phone is:", Bob.phone) // Bob's work phone is: 333-222
+	// 如果我們要訪問 Human 的 phone 欄位
+	fmt.Println("Bob's personal phone is:", Bob.Human.phone) // Bob's personal phone is: 777-444-XXXX
+}
+
+
+
