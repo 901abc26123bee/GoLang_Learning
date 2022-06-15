@@ -49,6 +49,14 @@ GOPATH的缺點
 講完了GOROOT、GOPATH，不知道大家有沒有發現GOPATH的一個很大的缺點，那就是你相關的第三方套件只要不是官方程式庫，都需要放置在GOPATH/src的路徑下才可以使用。
 
 ## Modules and Packages
+- 為了解決不被GOPATH的問題，因此官方在1.11開始推出了Go Modules的功能。Go Modules解決方式很像是Java看到Maven的做法，將第三方程式庫儲存在本地的空間，並且給程式去引用。
+
+- 而採用Go Modules，下載下來的第三方套件都就位在GOPATH/pkg/mod資料夾裡面。`go mod init <module name>`
+
+- `go get -u github.com/xxx`會將需要的套件安裝在GOPATH/pkg/mod資料夾裡面。而且會發現出現一個go.sum的檔案，這個檔案基本上用來記錄套件版本的關係，確保是正確的，是不太需要理會的。
+
+- 只要有開啟go modules功能，go get 就不會像以前一樣在GOPATH/src下放置套件檔案，而是會放在GOPATH/pkg/mod裡面，並且go.mod會寫好引入。
+
 [[Golang] Modules and Packages](https://pjchender.dev/golang/modules-and-packages/)
 ```sh
 # 在 hello 資料夾中
