@@ -30,9 +30,10 @@ $ go run demo2.go --help
 		-name string
 					The greeting object. (default "everyone")
 
+如果我們先構建這個命令源碼文件再運行生成的可執行文件:
 $ go build demo2.go
 $ ./demo2 --help
-	Usage of ./demo2:
+	Usage of ./demo2:	(生成的可執行文件的 relative 路徑)
 		-name string
 					The greeting object. (default "everyone")
  */

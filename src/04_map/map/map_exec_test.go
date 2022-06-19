@@ -85,3 +85,103 @@ func TestMapIterator(t *testing.T) {
 	// 疊代 map
 	printMap(colors)
 }
+
+
+type Student struct {
+	Name string
+}
+
+// var list map[string]Student
+
+func TestMapValueOperator(t *testing.T) {
+	list := make(map[string]Student)
+	student := Student{Name: "Olive"}
+	list["student"] = student
+	// map[string]Student 的value是一個Student結構值，
+	// *所以當list["student"] = student,是一個值拷貝過程。
+	// *而list["student"]則是一個值引用。那麼值引用的特點是只讀。
+	// 所以對list["student"].Name = "LDB"的修改是不允許的。
+	// list["student"].Name = "Hens"
+
+	/*
+			方法1:
+			先做一次值拷貝，做出一個tmpStudent副本,然後修改該副本，然後再次發生一次值拷貝複制回去，
+			但是這種會在整體過程中發生2次結構體值拷貝，性能很差。
+	*/
+	tmpStudent := list["student"]
+	tmpStudent.Name = "LDB"
+	list["student"] = tmpStudent
+
+	fmt.Println(list["student"])
+}
+
+// var list2 map[string]*Student
+
+func TestMapValueOperator2(t *testing.T) {
+	list2 := make(map[string]*Student)
+	student := Student{Name: "Olive"}
+	list2["student"] = &student
+
+	/*
+			方法2:
+			將map的類型的value由Student值，改成Student指針
+			* 指針本身是常指針，不能修改，只讀屬性，但是指向的Student是可以隨便修改的，而且這裡並不需要值拷貝。只是一個指針的賦值。
+	*/
+	list2["student"].Name = "LDB"
+
+	fmt.Println(*list2["student"])
+}
+
+type student struct {
+	Name string
+	Age  int
+}
+
+func TestMapValueIteration(t *testing.T) {
+	m := make(map[string]*student)
+	stus := []student{
+		{Name: "zhou", Age: 24},
+		{Name: "li", Age: 23},
+		{Name: "wang", Age: 22},
+	}
+
+	for _, stu := range stus {
+		m[stu.Name] = &stu
+	}
+
+	for k, v := range m {
+		fmt.Println(k, "-->", v.Name, v.Age)
+	}
+
+	// *foreach中，stu是結構體的一個拷貝副本，
+	// *所以m[stu.Name]=&stu實際上一致指向同一個指針， 最終該指針的值為遍歷的最後一個struct的值拷貝。
+	/*
+		map中的3個key均指向數組中最後一個結構體。
+		zhou --> wang 22
+		li --> wang 22
+		wang --> wang 22
+	*/
+}
+
+func TestMapValueIteration2(t *testing.T) {
+	m := make(map[string]*student)
+	stus := []student{
+		{Name: "zhou", Age: 24},
+		{Name: "lion", Age: 23},
+		{Name: "wang", Age: 22},
+	}
+
+	for i := 0; i < len(stus); i++ {
+		m[stus[i].Name] = &stus[i]
+	}
+
+	for k, v := range m {
+		fmt.Println(k, "-->", v.Name, v.Age)
+	}
+
+	/*
+		zhou --> zhou 24
+		lion --> lion 23
+		wang --> wang 22
+	*/
+}
