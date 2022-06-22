@@ -2,6 +2,16 @@ package string_test
 
 import "testing"
 
+/*
+	//* The interpreted form.
+	"Hello\nworld!\n\"你好世界\""
+
+	//* The raw form.
+	`Hello
+	world!
+	"你好世界"`
+*/
+
 func TestString(t *testing.T) {
 	var s string
 	t.Log(s)
