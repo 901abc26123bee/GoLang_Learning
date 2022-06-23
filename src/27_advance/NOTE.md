@@ -213,9 +213,198 @@ type Animal struct {
   當試圖在一個值為nil的map中添加key-value的時候，Go 語言的運行時系統就會立即拋出一個 panic。
 - 非原子操作需要加鎖， map並發讀寫需要加鎖，map操作不是並發安全的，判斷一個操作是否是原子的可以使用 `go run race `命令做數據的競爭檢測
 
-## 10 | 通道的基本操作
+## 10 | channel的基本操作
+### 基本特性。
+  1. 在同一時刻，`Go 語言的運行時系統只會執行對同一個channel的任意個發送操作中的某一個 or 對同一個channel的任意個接收操作中的某一個`。即使這些操作是並發執行的也是如此。這裡所謂的並發執行，
+  - 不同的 goroutine 之中，並有機會在同一個時間段內被執行。另外，對於channel中的同一個元素值來說，`發送操作和接收操作之間也是互斥的`。
+  - 進入channel的並不是在接收操作符右邊的那個元素值，而是它的副本。元素值從channel取出時會被移動。這個移動操作實際上包含了兩步，
+    1. 第一步是生成正在channel中的這個元素值的副本，並準備給到接收方，
+    2. 第二步是刪除在channel中的這個元素值。
+
+  2. `channel處理元素值時都是一氣呵成的，絕不會被打斷(“不可分割”)`。
+    - 發送操作要么還沒複製元素值，要么已經復製完畢，絕不會出現只複製了一部分的情況。
+    - 接收操作在準備好元素值的副本之後，一定會刪除掉channel中的原值，絕不會出現channel中仍有殘留的情況。這既是為了保證channel中元素值的完整性，也是為了保證channel操作的唯一性。
+    - 對於channel中的同一個元素值來說，它只可能是某一個發送操作放入的，同時也只可能被某一個接收操作取出。
+
+  3. 一般情況下，`發送操作包括了“複製元素值”`和`“放置副本到channel內部”`這兩個步驟。在這兩個步驟完全完成之前，發起這個發送操作的那句代碼會一直阻塞在那裡。也就是說，在它之後的代碼不會有執行的機會，直到這句代碼的阻塞解除。更細緻地說，`在channel完成發送操作之後，運行時系統會通知這句代碼所在的 goroutine，以使它去爭取繼續運行代碼的機會。`
+    另外，`接收操作通常包含了“複製channel內的元素值”“放置副本到接收方”“刪掉原值”三個步驟`。在所有這些步驟完全完成之前，發起該操作的代碼也會一直阻塞，直到該代碼所在的 goroutine 收到了運行時系統的通知並重新獲得運行機會為止。如此阻塞代碼其實就是`為了實現操作的互斥和元素值的完整`。
+
+### 發送操作和接收操作在什麼時候可能被長時間的阻塞？
+1. buffered channel
+  - 如果`channel已滿`，那麼`對它的所有發送操作都會被阻塞，直到channel中有元素值被接收走`。
+    這時，`channel會優先通知最早因此而等待的、那個發送操作所在的 goroutine，後者會再次執行發送操作`。由於發送操作在這種情況下被阻塞後，`它們所在的 goroutine 會順序地進入channel內部的發送等待隊列，所以通知的順序是公平的`。
+  - 如果`channel已空`，那麼`對它的所有接收操作都會被阻塞，直到channel中有新的元素值出現`。
+    這時，channel會通知最早等待的那個接收操作所在的 goroutine，並使它再次執行接收操作。因此而等待的、所有接收操作所在的 goroutine，都會按照先後順序被放入channel內部的接收等待隊列。
+2. unbuffered channel
+  - `無論是發送操作還是接收操作，一開始執行就會被阻塞，直到配對的操作也開始執行，才會繼續傳遞`。
+    - `unbuffered channel是在用同步的方式傳遞數據`。也就是說，只有收發雙方對接上了，數據才會被傳遞。
+    - `數據是直接從發送方復製到接收方的`，中間並不會用unbuffered channelchannel做中轉。
+    - 相比之下，`buffered channel則在用異步的方式傳遞數據`。在大多數情況下，buffered channel會作為收發雙方的中間件。元素值會先從發送方復製到buffered channel，之後再由buffered channel複製給接收方。但是，`當發送操作在執行的時候發現空的channel中，正好有等待的接收操作，那麼它會直接把元素值複製給接收方`。
+3. 由於錯誤使用channel而造成的阻塞
+  - `對於值為nil的channel`，不論它的具體類型是什麼，對它的`發送操作和接收操作都會永久地處於阻塞狀態`。它們所屬的 goroutine 中的任何代碼，都不再會被執行。注意，由於`channel類型是引用類型，所以它的零值就是nil`。只聲明該類型的變量但沒有用make函數對它進行初始化時，該變量的值就會是nil。
 
 
+### 發送操作和接收操作在什麼時候會引發 panic？
+1. 對於一個`已初始化，但並未關閉的channel`來說，`收發操作一定不會引發 panic`。但是`channel一旦關閉，再對它進行發送操作，就會引發 panic`。
+2. 如果`試圖關閉一個已經關閉了的channel`，也會引發 panic。
+  - `接收操作`是`可以感知到channel的關閉的，並能夠安全退出`。當把接收表達式`data, ok := <-ch`的結果同時賦給兩個變量時，第二個變量的類型就是一定bool類型。`它的值如果為false就說明channel已經關閉，並且再沒有元素值可取了`。
+  - `如果channel關閉時，裡面還有元素值未被取出`，那麼接收表達式的第一個結果(data)，`仍會是channel中的某一個元素值`，而`第二個結果(ok)值一定會是true`。因此，通過接收表達式的第二個結果值，來`判斷channel是否關閉是可能有延時`的。
+    - 由於channel的收發操作有上述特性，所以除非有特殊的保障措施，`不要讓接收方關閉channel，而應讓發送方做這件事`。
+
+- chanel有點像socket的同步阻塞模式，只不過channel的發送端和接收端共享一個緩衝，socket則是發送這邊有發送緩衝，接收這邊有接收緩衝，而且socket接收端如果先close的話，發送端再發送數據的也會引發panic（linux上會觸發SIG_PIPE信號，不處理程序就崩潰了）。
+
+## 11 | channel的高級玩法
+### unidirectional channels
+- 可以使用帶range子句的for語句從通道中獲取數據，也可以通過select語句操縱通道。
+1. `<-chan` receive only channel  (only receive data from goroutine)
+2. `chan<-` send only channel (only send data to goroutine)
+- 最主要的用途就是約束其他代碼的行為, 這種約束一般會出現在接口類型聲明中的某個方法定義上
+  ```go
+  type Notifier interface {
+    SendInt(ch chan<- int)
+  }
+  ```
+  在調用SendInt函數的時候，只需要把一個元素類型匹配的雙向通道傳給它就行了，因為 Go 語言在這種情況下會自動地把雙向通道轉換為函數所需的單向通道。
+  ```go
+  intChan1 := make(chan int, 3)
+  SendInt(intChan1)
+  ```
+
+- use unidirectional channels as return type, 意味著得到該通道的程序，只能從通道中接收元素值。這實際上就是對函數調用方的一種約束了。
+  ```go
+  func getIntChan() <-chan int {
+    num := 5
+    ch := make(chan int, num)
+    for i := 0; i < num; i++ {
+      ch <- i
+    }
+    close(ch)
+    return ch
+  }
+  ```
+- 在函數類型中使用了單向通道，那麼就相等於在約束所有實現了這個函數類型的函數。
+  ```go
+  intChan2 := getIntChan()
+  for elem := range intChan2 {
+    fmt.Printf("The element in intChan2: %v\n", elem)
+  }
+  ```
+  這裡的for語句也可以被稱為帶有range子句的for語句。
+  1. 這樣一條for語句會不斷地嘗試從intChan2種取出元素值，即使intChan2被關閉，它也會在取出所有剩餘的元素值之後再結束執行。
+  2. 當intChan2中沒有元素值時，它會被阻塞在有for關鍵字的那一行，直到有新的元素值可取。
+  3. 假設intChan2的值為nil，那麼它會被永遠阻塞在有for關鍵字的那一行。
+
+### select
+- select語句只能與通道聯用，它一般由若干個分支組成。每次執行這種語句的時候，一般只有一個分支中的代碼會被運行。
+  由於select語句是專為通道而設計的，所以每個case表達式中都只能包含操作通道的表達式，比如接收表達式。如果把接收表達式的結果賦給變量的話，還可以把這裡寫成賦值語句或者短變量聲明。
+  ```go
+  // 準備好幾個通道。
+  intChannels := [3]chan int{
+    make(chan int, 1),
+    make(chan int, 1),
+    make(chan int, 1),
+  }
+  // 隨機選擇一個通道，並向它發送元素值。
+  index := rand.Intn(3)
+  fmt.Printf("The index: %d\n", index)
+  intChannels[index] <- index
+  // 哪一個通道中有可取的元素值，哪個對應的分支就會被執行。
+  select {
+    case <-intChannels[0]:
+      fmt.Println("The first candidate case is selected.")
+    case <-intChannels[1]:
+      fmt.Println("The second candidate case is selected.")
+    case elem := <-intChannels[2]:
+      fmt.Printf("The third candidate case is selected, the element is %d.\n", elem)
+    default:
+      fmt.Println("No candidate case is selected!")
+  }
+  ```
+在使用select語句的時候，需要注意:
+1. with 默認分支，if all cases are blocked，或者說都沒有滿足求值的條件，那麼默認分支就會被選中並執行。
+2. without 默認分支，一旦所有的case表達式都沒有滿足求值條件，那麼select語句就會被阻塞。直到至少有一個case表達式滿足條件為止。一旦發現某個通道關閉了，我們就應該及時地屏蔽掉對應的分支或者採取其他措施
+  ```go
+  intChan := make(chan int, 1)
+  time.AfterFunc(time.Second, func() {
+    close(intChan)
+  })
+  select {
+    case _, ok := <-intChan:
+      if !ok {
+        fmt.Println("The candidate case is closed.")
+        break
+      }
+    fmt.Println("The candidate case is selected.")
+  }
+  ```
+3. select語句只能對其中的每一個case表達式各求值一次。所以，如果想連續或定時地操作其中的通道的話，需要通過在for語句中嵌入select語句的方式實現。但這時要注意，簡單地在select語句的分支中使用break語句，只能結束當前的select語句的執行，而並不會對外層的for語句產生作用。這種錯誤的用法可能會讓這個for語句無休止地運行下去。
+
+
+select 規則:
+1. 對於每一個case表達式，都至少會包含一個代表發送操作的發送表達式或者一個代表接收操作的接收表達式，同時也可能會包含其他的表達式。
+2. select語句包含的候選分支中的`case表達式都會在該語句執行開始時先被求值`，並且`求值的順序是依從代碼編寫的順序從上到下`的。結合上一條規則，在select語句開始執行時，排在最上邊的候選分支中`最左邊的表達式會最先被求值，然後是它右邊的表達式`。僅當最上邊的候選分支中的所有表達式都被求值完畢後，從上邊數第二個候選分支中的表達式才會被求值，順序同樣是從左到右，然後是第三個候選分支、第四個候選分支，以此類推。
+3. 對於每一個case表達式，如果其中的`發送表達式或者接收表達式在被求值時，相應的操作正處於阻塞狀態，那麼對該case表達式的求值就是不成功的`。在這種情況下,這個case表達式所在的候選分支是不滿足選擇條件的。
+4. `僅當select語句中的所有case表達式都被求值完畢後，它才會開始選擇候選分支`。這時候，它只會挑選滿足選擇條件的候選分支執行。如果所有的候選分支都不滿足選擇條件，那麼默認分支就會被執行。如果這時沒有默認分支，那麼select語句就會立即進入阻塞狀態，直到至少有一個候選分支滿足選擇條件為止。一旦有一個候選分支滿足選擇條件，select語句（或者說它所在的 goroutine）就會被喚醒，這個候選分支就會被執行。
+5. 如果select語句發現同時有多個候選分支滿足選擇條件，那麼它就會用一種`偽隨機的算法在這些分支中選擇一個並執行`。即使select語句是在被喚醒時發現的這種情況，也會這樣做。
+
+一條select語句中只能夠有一個默認分支。並且，默認分支只在無候選分支可選時才會被執行，這與它的編寫位置無關。
+
+select語句的每次執行，包括case表達式求值和分支選擇，都是獨立的。不過，至於它的執行是否是並發安全的，就要看其中的case表達式以及分支中，是否包含並發不安全的代碼了。
+我把與以上規則相關的示例放在 demo25.go 文件中了。你一定要去試運行一下，然後嘗試用上面的規則去解釋它的輸出內容。
+
+- 如果在select語句中發現某個通道已關閉，那麼應該怎樣屏蔽掉它所在的分支？
+  1. 把nil賦給代表了這個通道的變量就可以了。如此一來，對於這個通道（那個變量）的發送操作和接收操作就會永遠被阻塞。
+  2. 可以把這個channel重新賦值成為一個長度為0的非緩衝通道，這樣這個case就一直被阻塞了
+  ```go
+  for {
+    select {
+    case _, ok := <-ch1:
+      if !ok {
+        ch1 = nil // 1
+        // ch1 = make(chan int) // 2
+      }
+      case ..... :
+    ////
+    default:
+    //// 
+    }
+  }
+  ```
+- 在select語句與for語句聯用時，怎樣直接退出外層的for語句？
+  1. 可以用 break和標籤配合使用，直接break出指定的循環體，
+  2. 或者goto語句直接跳轉到指定標籤執行
+  3. return
+  ```go
+  // 1. break配合標籤：
+  ch1 := make(chan int, 1)
+  time.AfterFunc(time.Second, func() { close(ch1) })
+  loop:
+    for {
+      select {
+      case _, ok := <-ch1:
+        if !ok {
+          break loop
+        }
+      fmt.Println("ch1")
+      }
+    }
+  fmt.Println("END")
+
+  // 2. goto配合標籤：
+  ch1 := make(chan int, 1)
+  time.AfterFunc(time.Second, func() { close(ch1) })
+  for {
+    select {
+    case _, ok := <-ch1:
+      if !ok {
+        goto loop
+      }
+    fmt.Println("ch1")
+    }
+  }
+  loop:
+    fmt.Println("END")
+  ```
 
 ## 14 | 接口類型的合理運用
 - 接口類型聲明中的這些方法所代表的就是該接口的方法集合。一個接口的方法集合就是它的全部特徵。對於任何數據類型，只要它的方法集合中完全包含了一個接口的全部特徵（即全部的方法），那麼它就一定是這個接口的實現類型。(Duck typing)

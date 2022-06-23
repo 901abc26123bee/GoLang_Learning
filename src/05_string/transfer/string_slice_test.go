@@ -97,3 +97,43 @@ func Test_Literals(t *testing.T) {
 	在日常編程中, rune字面量形式多用做字符串的雙引號字面量形式中的轉義字符
 
 */
+
+// https://learnku.com/articles/23411/the-difference-between-rune-and-byte-of-go
+/*
+	* different between [] rune and [] byte in golang
+		byte is an alias for uint8 and is equivalent to uint8 in all ways. It is
+		used, by convention, to distinguish byte values from 8-bit unsigned
+		integer values.
+		type byte = uint8
+
+		rune is an alias for int32 and is equivalent to int32 in all ways. It is
+		used, by convention, to distinguish character values from integer values.
+		type rune = int32
+
+	* byte 表示一個字節，rune 表示四個字節
+*/
+
+func Test_byte_rune_slice_compare(t *testing.T) {
+	first := "fisrt"
+	fmt.Println([]rune(first))	// [102 105 115 114 116]
+	fmt.Println([]byte(first))	// [102 105 115 114 116]
+
+	second := "go語言"
+	fmt.Println([]rune(second)) // [103 111 35486 35328]
+	fmt.Println([]byte(second)) // [103 111 232 170 158 232 168 128]
+	// 中文字符串每個佔三個字節
+}
+
+func Test_substring_by_slice(t *testing.T) {
+	s := "golangcaff"
+	fmt.Println(s[:3]) // gol
+
+	s2 := "截取中文"
+	fmt.Println(s2[:2]) // ��
+
+	res := []rune(s2)
+	fmt.Println(string(res[:2])) // 截取
+
+	// 為什麼 s[:n] 無法直接截取呢，
+	// * 猜測 如果直接截取的話，底層會將中文轉化成 []byte， 而不是 []rune
+}

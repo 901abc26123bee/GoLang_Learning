@@ -1,5 +1,6 @@
 https://github.com/aceld/golang/blob/main/4%E3%80%81interface.md
 https://www.henrydu.com/2021/02/07/golang-interface-brief-look/
+https://draveness.me/golang/docs/part2-foundation/ch04-basic/golang-interface/
 
 interface 是GO語言的基礎特性之一。可以理解為一種類型的規範或者約定。它是通過約定的形式，隱式的實現interface 中的方法即可。因此，Golang 中的 interface 讓編碼更靈活、易擴展。
 1. interface 是方法聲明的集合
