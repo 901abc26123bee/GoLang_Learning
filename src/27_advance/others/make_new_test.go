@@ -1,4 +1,4 @@
-package make_new_test
+package other_test
 
 import (
 	"fmt"

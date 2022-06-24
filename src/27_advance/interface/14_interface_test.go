@@ -1,8 +1,8 @@
 package interface_test
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 type Pet interface {
@@ -30,7 +30,7 @@ func Test_Interface_2(t *testing.T) {
 	// 如果我們使用一個變量給另外一個變量賦值，那麼真正賦給後者的，並不是前者持有的那個值，而是該值的一個副本。
 	dog := Dog{"little pig"}
 	fmt.Printf("The dog's name is %q.\n", dog.Name())
-	var pet Pet = dog
+	var pet Pet = dog // pet is a copy of dog
 	dog.SetName("monster")
 	fmt.Printf("The dog's name is %q.\n", dog.Name())
 	fmt.Printf("This pet is a %s, the name is %q.\n",
@@ -48,7 +48,7 @@ func Test_Interface_2(t *testing.T) {
 
 	dog = Dog{"little pig"}
 	fmt.Printf("The dog's name is %q.\n", dog.Name())
-	pet = &dog
+	pet = &dog // pet point to dog
 	dog.SetName("monster")
 	fmt.Printf("The dog's name is %q.\n", dog.Name())
 	fmt.Printf("This pet is a %s, the name is %q.\n",
