@@ -133,8 +133,26 @@ func main() {
 - 在 Go 語言中，如果傳遞的值是引用類型的，那麼就是“傳引用”。如果傳遞的值是值類型的，那麼就是“傳值”。
 - 在array和slice之上都可以應用索引表達式，得到的都會是某個元素。我們在它們之上也都可以應用slice表達式，也都會得到一個新的slice。
 
+### slice容量的增長
+- 一旦一個slice無法容納更多的元素，Go 語言就會想辦法擴容。但它並不會改變原來的slice，而是會生成一個容量更大的slice，然後將把原有的元素和新元素一併拷貝到新slice中。在一般的情況下，新slice的容量將會是原slice容量（以下簡稱原容量）的 2 倍。
+- 但是，當原slice的長度大於或等於1024時，Go 語言將會以原容量的1.25倍作為新容量的基準。新容量基準會被調整（不斷地與1.25相乘），直到結果不小於原長度與要追加的元素數量之和。最終，新容量往往會比新長度大一些，當然，相等也是可能的。
 
+- 如果一次追加的元素過多，以至於使新長度比原容量的 2 倍還要大，那麼新容量就會以新長度為基準。更多細節可參見runtime包中 slice.go 文件裡的growslice及相關函數的具體實現。
 
+### slice的底層數組什麼時候會被替換？
+- 確切地說，一個slice的底層數組永遠不會被替換。雖然在擴容的時候 Go 語言一定會生成新的底層數組，但是它也同時生成了新的slice。它是把新的slice作為了新底層數組的窗口，而沒有對原slice及其底層數組做任何改動。
+
+- 在無需擴容時，append函數返回的是指向原底層數組的新slice，而在需要擴容時，append函數返回的是指向新底層數組的新slice。只要新長度不會超過slice的原容量，那麼使用append函數對其追加元素的時候就不會引起擴容。這只會使緊鄰slice窗口右邊的（底層數組中的）元素被新的元素替換掉。
+
+```go
+// 初始時兩個切片引用同一個底層數組，在後續操作中對某個切片的操作超出底層數組的容量時，這兩個切片引用的就不是同一個數組
+s1 := []int {1,2,3,4,5}
+s2 := s1[0:5]
+
+s2 = append(s2, 6)
+s1[3] = 30
+// 此時s1[3]的值為30, s2[3]的值仍然為4，因為s2的底層數組已是擴容後的新數組了。
+```
 
 
 ## 09 | map的操作和約束
@@ -357,6 +375,98 @@ select語句的每次執行，包括case表達式求值和分支選擇，都是�
     fmt.Println("END")
   ```
 
+
+## 12 | 使用函數的正確姿勢
+- 在 Go 語言中，函數可是一等的（first-class）公民，函數類型也是一等的數據類型。而更深層次的含義就是：函數值可以由此成為能夠被隨意傳播的獨立邏輯組件（或者說功能模塊）。
+
+```go
+// function declarations
+type Printer func(contents string) (n int, err error)
+
+// function signatures
+func printToStd(contents string) (bytesNum int, err error) {
+  return fmt.Println(contents)
+}
+
+func main() {
+  // 證實這兩者的關係了，順利地把printToStd函數賦給了Printer類型的變量p，並且成功地調用了它。
+  var p Printer
+  p = printToStd
+  p("something")
+}
+```
+- 聲明了一個函數類型，名叫Printer。注意這裡的寫法，在類型聲明的名稱右邊的是func關鍵字，由此就可知這是一個函數類型的聲明。在func右邊的就是這個函數類型的參數列表和結果列表。
+- 其中，參數列表必須由圓括號包裹，而只要結果列表中只有一個結果聲明，並且沒有為它命名，就可以省略掉外圍的圓括號。
+
+- `函數簽名的方式`與`函數聲明`的是一致的。只是緊挨在參數列表左邊的不是函數名稱，而是關鍵字func。
+
+- `函數的簽名其實就是函數的參數列表和結果列表的統稱`，它定義了可用來鑑別不同函數的那些特徵，同時也定義了我們與函數交互的方式。
+  - 各個`參數和結果的名稱不能算作函數簽名的一部分`，甚至對於結果聲明來說，沒有名稱都可以。
+  - 只要`兩個函數的參數列表 和 結果列表中的 元素順序 及 其類型是一致的`，我們就可以說它們是一樣的函數，或者說是實現了同一個函數類型的函數。
+  - 嚴格來說，函數的名稱也不能算作函數簽名的一部分，它只是我們在調用函數時，需要給定的標識符而已。
+### how ro write Higher-order function(高階函數)
+- 高階函數:
+  - 把函數作為一個普通的值賦給一個變量。
+  - 讓函數在其他函數間傳遞
+  - 接受其他的函數作為參數傳入。
+想通過編寫calculate函數來實現兩個整數間的加減乘除運算，但是希望兩個整數和具體的操作都由該函數的調用方給出，那麼，這樣一個函數應該怎樣編寫呢。
+```go
+// declare operate function type
+type operate func(x, y int) int
+
+// 然後，編寫calculate函數的簽名部分。這個函數除了需要兩個int類型的參數之外，還應該有一個operate類型的參數。
+// 該函數的結果應該有兩個，一個是int類型的，代表真正的操作結果，另一個應該是error類型的，因為如果那個operate類型的參數值為nil，那麼就應該直接返回一個錯誤。
+// 函數類型屬於引用類型，它的值可以為nil，而這種類型的零值恰恰就是nil。
+func calculate(x int, y int, op operate) (int, error) {
+  if op == nil {
+    return 0, errors.New("invalid operation")
+  }
+  // 如果檢查無誤，那麼就調用op並把那兩個操作數傳給它，最後返回op返回的結果和代表沒有錯誤發生的nil
+  return op(x, y), nil
+}
+
+// 只要function的簽名與operate類型的簽名一致，
+// 可以像上一個例子那樣先聲明好一個函數，再把它賦給一個變量，也可以直接編寫一個實現了operate類型的匿名函數。
+op := func(x, y int) int {
+  return x + y
+}
+```
+### 如何實現閉包
+- `閉包函數就是因為引用了自由變量，而呈現出了一種“不確定”的狀態，也叫“開放”狀態`。也就是說，它的`內部邏輯並不是完整的，有一部分邏輯需要這個自由變量參與完成`，而後者到底代表了什麼在閉包函數被定義的時候卻是未知的。
+- 的`genCalculator函數內部，實際上就實現了一個閉包`，而genCalculator函數也是一個高階函數。
+- 它(閉包函數)裡面使用的`變量op`既`不代表它的任何參數或結果`也`不是它自己聲明的`，而是`定義它的genCalculator函數的參數，所以是一個自由變量`。
+- `這個自由變量究竟代表什麼`，這一點並不是在定義這個閉包函數的時候確定的，而`是在genCalculator函數被調用的時候確定的`。只有給定了該函數的參數op，我們才能知道它返回給我們的閉包函數可以用於什麼運算。
+- `if op == nil {` 那一行, Go 語言編譯器讀到這裡時會試圖去尋找op所代表的東西，它會`發現op代表的是genCalculator函數的參數`，然後，它會`把這兩者聯繫起來`。這時可以說，`自由變量op被“捕獲”了。`如此一來，這個閉包函數的狀態就`由“不確定”變為了“確定”，或者說轉到了“閉合”狀態`，至此也就真正地形成了一個閉包。
+```go
+func genCalculator(op operate) calculateFunc {
+  // 這個匿名的函數就是一個閉包函數。
+  return func(x int, y int) (int, error) {
+    if op == nil {
+      return 0, errors.New("invalid operation")
+    }
+    return op(x, y), nil
+  }
+}
+```
+- 實現閉包的意義:
+  - 表面上看，只是延遲實現了一部分程序邏輯或功能而已，
+  - 但實際上，是在動態地生成那部分程序邏輯。可以藉此在程序運行的過程中，根據需要生成功能不同的函數，繼而影響後續的程序行為。這與 GoF 設計模式中的模板方法模式有著異曲同工之妙
+### 傳入函數的那些參數值
+- 所有傳給函數的參數值都會被複製，函數在其內部使用的並不是參數值的原值，而是它的副本。
+  - 由於`數組是值類型`，所以每一次復制都會拷貝它，以及它的所有元素值。
+  - 對於引用類型，比如：slice, map, channel，像上面那樣複製它們的值，只會拷貝它們本身而已，並不會拷貝它們引用的底層數據。也就是說，這時只是淺表複製，而不是深層複製。
+  - 還要注意，就算傳入函數的是一個值類型的參數值，但如果這個參數值中的某個元素是引用類型的，仍然要小心。
+  ```go
+  complexArray1 := [3][]string{
+    []string{"d", "e", "f"},
+    []string{"g", "h", "i"},
+    []string{"j", "k", "l"},
+  }
+  ```
+  變量complexArray1是[3][]string類型的，也就是說，雖然它是一個數組，但是其中的每個元素又都是一個切片。這樣一個值被傳入函數的話，函數中對該參數值的修改會影響到complexArray1本身嗎？
+  - 1. 分2種情況，若是修改數組中的切片的某個元素，會影響原數組。若是修改數組的某個元素即a[1]=[]string{"x"}就不會影響原數組。謹記Go中都是淺拷貝，值類型和引用類型的區別
+  - 2. 當函數返回指針類型時不會發生拷貝。當函數返回非指針類型並把結果賦值給其它變量肯定會發生拷貝
+
 ## 13 | 結構體及其方法的使用
 - 結構體類型也可以不包含任何字段，可以為這些類型關聯上一些方法，把方法看做是函數的特殊版本。
 - (functional programming)函數則是獨立的程序實體。可以聲明有名字的函數，也可以聲明沒名字的函數，還可以把它們當做普通的值傳來傳去。我們能把具有相同簽名的函數抽象成獨立的函數類型，以作為一組輸入、輸出（或者說一類邏輯組件）的代表。
@@ -420,7 +530,7 @@ type Animal struct {
 - Go 語言標準庫代碼包io中的ReadWriteCloser接口和ReadWriter接口就是這樣的例子，它們都是由若干個小接口組合而成的。以io.ReadWriteCloser接口為例，它是由io.Reader、io.Writer和io.Closer這三個接口組成的。
   這三個接口都只包含了一個方法，是典型的小接口。它們中的每一個都只代表了一種能力，分別是讀出、寫入和關閉。們編寫這幾個小接口的實現類型通常會很容易。並且，一旦我們同時實現了它們，就等於實現了它們的組合接口io.ReadWriteCloser。即使我們只實現了io.Reader和io.Writer，那麼也等同於實現了io.ReadWriter接口，因為後者就是前兩個接口組成的。可以看到，這幾個io包中的接口共同組成了一個接口矩陣。它們既相互關聯又獨立存在。
 
-## 15 | 關於指針的有限操作
+## 15 | 關於指針pointer的有限操作
 ### Container Value Literals
 Like struct values, container values can also be represented with composite literals, T{...}, where T denotes container type (except the zero values of slice and map types). Here are some examples:
 ```go
@@ -515,6 +625,34 @@ nameP := (*string)(unsafe.Pointer(namePtr))
 - 直接用取址表達式&(dogP.name)不就能拿到這個指針值了嗎？
   - 如果我們根本就不知道這個結構體類型是什麼，也拿不到dogP這個變量，那麼還能去訪問它的name字段嗎？
   - 答案是，只要有namePtr就可以。它就是一個`無符號整數`，但同時也是一個指向了程序內部數據的內存地址。它可以直接修改埋藏得很深的內部數據。
+
+### uintptr和unsafe.Pointer的區別
+[golang面试题：能说说uintptr和unsafe.Pointer的区别吗？](https://mp.weixin.qq.com/s?__biz=Mzg5NDY2MDk4Mw==&mid=2247486359&idx=1&sn=8355fed3fbd26f4eaa141ec072bec44d&source=41#wechat_redirect)
+- `unsafe.Pointer只是單純的通用指針類型，用於轉換不同類型指針`，它不可以參與指針運算；
+- `而uintptr是用於指針運算的`，GC 不把 uintptr 當指針，也就是說 `uintptr 無法持有對象， uintptr 類型的目標會被回收`；
+- unsafe.Pointer 可以和 普通指針 進行相互轉換；
+- unsafe.Pointer 可以和 uintptr 進行相互轉換。
+
+```go
+type W struct {
+  b int32
+  c int64
+}
+
+func main() {
+  var w *W = new(W)
+  //這時w的變量打印出來都是默認值0，0
+  fmt.Println(w.b,w.c)
+
+  //現在我們通過指針運算給b變量賦值為10
+  // uintptr(unsafe.Pointer(w)) 獲取了 w 的指針起始值, unsafe.Offsetof(w.b) 獲取 b 變量的偏移量, 兩個相加就得到了 b 的地址值
+  b := unsafe.Pointer(uintptr(unsafe.Pointer(w)) + unsafe.Offsetof(w.b))
+  // 將通用指針 Pointer 轉換成具體指針 ((*int)(b))，通過 * 符號取值，然後賦值。 *((*int)(b)) 相當於把 (*int)(b) 轉換成 int 了，最後對變量重新賦值成 10，這樣指針運算就完成了。
+  *((*int)(b)) = 10
+  //此時結果就變成了10，0
+  fmt.Println(w.b,w.c)
+}
+```
 
 
 ## 16 | go語句及其執行規則（上）
